@@ -1,0 +1,12 @@
+herycg_profile:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('GCP_PROJECT', 'fleet-tractor-421109') }}"
+      dataset: "{{ env_var('GCP_DATASET', 'analytics_mart') }}"
+      keyfile: "{{ env_var('DBT_KEYFILE', '/opt/airflow/credentials/bq-sa.json') }}"
+      threads: 4
+      timeout_seconds: 300
+      location: asia-southeast2

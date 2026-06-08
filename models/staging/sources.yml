@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: raw_data
+    description: "Raw source datasets ingested by python loader scripts."
+    schema: analytics_mart_raw
+    tables:
+      - name: raw_bookings
+        description: "Raw property management room bookings."
+      - name: raw_customers
+        description: "Raw customer CRM details."
+      - name: raw_pos_transactions
+        description: "Raw Food & Beverage POS transactions."
+      - name: raw_marketing_performance
+        description: "Raw daily advertising platform metrics."

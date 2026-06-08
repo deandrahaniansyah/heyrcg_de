@@ -1,0 +1,3 @@
+dbt-bigquery
+google-cloud-bigquery
+mashumaro>=3.17
