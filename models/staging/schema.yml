@@ -1,0 +1,129 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: "Cleaned and standardised CRM customer data. Emails are lowercased and stripped of spaces, loyalty tiers are title-cased, and an email validity flag is computed."
+    columns:
+      - name: customer_id
+        description: "Source system customer identifier."
+        tests:
+          - not_null
+      - name: full_name
+        description: "Customer full name, trimmed."
+      - name: email
+        description: "Cleaned email address (lowercased, spaces removed)."
+      - name: phone
+        description: "Phone number (nullable)."
+      - name: city
+        description: "City of origin (nullable)."
+      - name: nationality
+        description: "Customer nationality."
+      - name: loyalty_tier
+        description: "Loyalty tier: Bronze / Silver / Gold / Platinum (null converted to null, not defaulted at staging)."
+      - name: joined_date
+        description: "Date the customer joined the loyalty program (cast to DATE)."
+      - name: is_email_valid
+        description: "Boolean flag indicating whether the email matches a basic RFC-like format."
+
+  - name: stg_bookings
+    description: "Cleaned room bookings from the property management system. Column names standardised to snake_case, booking statuses normalised, checkout dates corrected when before check-in, and multi-currency revenues converted to IDR."
+    columns:
+      - name: booking_id
+        description: "Unique booking identifier (trimmed from BookingID)."
+        tests:
+          - unique
+          - not_null
+      - name: hotel_name
+        description: "Name of the hotel property."
+      - name: room_type
+        description: "Room type (title-cased)."
+      - name: customer_id
+        description: "Foreign key linking to the customer CRM."
+      - name: check_in_date
+        description: "Check-in date (cast to DATE)."
+      - name: check_out_date
+        description: "Corrected check-out date. If the raw checkout was before check-in, it is overridden to check_in_date + nights."
+      - name: nights
+        description: "Number of nights for the stay."
+      - name: booking_status
+        description: "Standardised booking status: Confirmed, Checked In, Checked Out, Cancelled, No Show, or Unknown."
+      - name: channel
+        description: "Sales channel (title-cased)."
+      - name: booking_source
+        description: "OTA or direct booking source (title-cased)."
+      - name: rate_per_night
+        description: "Nightly room rate in the original currency."
+      - name: currency
+        description: "Original currency code (uppercased): IDR, USD, AUD, SGD."
+      - name: discount_pct
+        description: "Discount percentage applied to the booking (nullable, treated as 0 if null for revenue calculations)."
+      - name: is_loyalty_member
+        description: "Standardised boolean for loyalty membership (normalised from True/False/Yes/No/1/0/None)."
+      - name: gross_revenue_idr
+        description: "Gross room revenue in IDR. Calculated as COALESCE(TotalRevenue_IDR, RatePerNight * nights * exchange_rate)."
+      - name: net_revenue_idr
+        description: "Net room revenue in IDR after applying discount: gross_revenue_idr * (1 - discount_pct)."
+
+  - name: stg_pos_transactions
+    description: "Cleaned and deduplicated POS F&B transaction records. Duplicates removed by pos_transaction_id. Mixed date formats parsed via regex. total_amount stripped of IDR prefix and commas. Item names and payment methods standardised. Null hotel_name inferred from outlet_name mapping. Null categories filled from known item-to-category mapping."
+    columns:
+      - name: pos_transaction_id
+        description: "Unique POS transaction identifier (deduplicated)."
+        tests:
+          - unique
+          - not_null
+      - name: outlet_name
+        description: "Name of the F&B outlet within the hotel."
+      - name: hotel_name
+        description: "Parent hotel name. Inferred from outlet_name when the raw value is null."
+      - name: transaction_date
+        description: "Transaction date parsed from multiple raw formats (YYYY-MM-DD, YYYYMMDD, DD MMM YYYY, DD/MM/YYYY, MM-DD-YYYY) into a standard DATE. Rows with unparseable dates will have NULL here."
+      - name: customer_id
+        description: "Customer identifier linking to CRM (nullable for walk-in guests)."
+      - name: item_name
+        description: "Standardised product/menu item name (e.g. 'nasi_goreng' -> 'Nasi Goreng')."
+      - name: category
+        description: "Product category: Food, Beverage, Dessert, or Other. Filled from item_name lookup when raw value is null."
+      - name: quantity
+        description: "Number of units sold."
+      - name: unit_price
+        description: "Per-unit price. Back-calculated from total_amount / quantity when raw value is null."
+      - name: total_amount
+        description: "Total transaction amount in IDR (numeric). Cleaned from raw strings like 'IDR 220,000'. Back-calculated from quantity * unit_price when raw value is null."
+      - name: payment_method
+        description: "Standardised payment method: Cash, Credit Card, Dana, GoPay, OVO, or Unknown."
+      - name: staff_id
+        description: "Staff member identifier."
+
+  - name: stg_marketing_performance
+    description: "Cleaned and standardised daily campaign marketing performance. Campaign names uppercased and trimmed for deduplication. Null spend treated as zero."
+    columns:
+      - name: row_id
+        description: "Source row number (used as a surrogate since there is no natural composite key)."
+        tests:
+          - unique
+          - not_null
+      - name: campaign_name
+        description: "Campaign name, uppercased and trimmed for consistent grouping."
+      - name: platform
+        description: "Advertising platform (title-cased)."
+      - name: hotel_name
+        description: "Hotel associated with the campaign."
+      - name: campaign_date
+        description: "Date of the campaign performance record (cast to DATE)."
+      - name: impressions
+        description: "Number of ad impressions."
+      - name: clicks
+        description: "Number of ad clicks."
+      - name: spend_idr
+        description: "Ad spend in IDR. Null values coalesced to 0.0."
+      - name: conversions
+        description: "Number of conversion events."
+      - name: bookings_generated
+        description: "Number of bookings attributed to this campaign."
+      - name: revenue_generated_idr
+        description: "Revenue attributed to this campaign in IDR."
+      - name: ad_creative_id
+        description: "Creative identifier (nullable)."
+      - name: target_audience
+        description: "Target audience segment (nullable, title-cased)."

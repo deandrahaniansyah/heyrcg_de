@@ -1,0 +1,172 @@
+version: 2
+
+models:
+  - name: dim_customer
+    description: "Deduplicated customer dimension table, containing active loyalty tier and profile attributes. Includes Guest fallback record."
+    columns:
+      - name: customer_key
+        description: "Surrogate key for the customer."
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: "Natural key / source system customer ID."
+
+  - name: dim_hotel
+    description: "Unique list of boutique hotels in Bali."
+    columns:
+      - name: hotel_key
+        description: "Surrogate key for the hotel."
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_date
+    description: "Daily date dimension covering Q1 2024 calendar data."
+    columns:
+      - name: date_key
+        description: "Surrogate key for the date."
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_product
+    description: "Unique product catalog of F&B items sold across outlets."
+    columns:
+      - name: product_key
+        description: "Surrogate key for the product item."
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_campaign
+    description: "Unique list of marketing campaigns."
+    columns:
+      - name: campaign_key
+        description: "Surrogate key for the campaign."
+        tests:
+          - unique
+          - not_null
+
+  - name: fact_bookings
+    description: "Fact table for room bookings. One row per booking."
+    columns:
+      - name: booking_key
+        description: "Surrogate key for the booking."
+        tests:
+          - unique
+          - not_null
+      - name: customer_key
+        description: "Foreign key referencing dim_customer."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customer')
+                field: customer_key
+      - name: hotel_key
+        description: "Foreign key referencing dim_hotel."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_hotel')
+                field: hotel_key
+      - name: check_in_date_key
+        description: "Foreign key referencing check-in date in dim_date."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: check_out_date_key
+        description: "Foreign key referencing check-out date in dim_date."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: booking_created_date_key
+        description: "Foreign key referencing booking creation date in dim_date."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+
+  - name: fact_pos_transactions
+    description: "Fact table for F&B POS transactions. One row per transaction line item."
+    columns:
+      - name: pos_transaction_key
+        description: "Surrogate key for the transaction."
+        tests:
+          - unique
+          - not_null
+      - name: customer_key
+        description: "Foreign key referencing dim_customer (falls back to GUEST if anonymous)."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customer')
+                field: customer_key
+      - name: hotel_key
+        description: "Foreign key referencing dim_hotel."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_hotel')
+                field: hotel_key
+      - name: date_key
+        description: "Foreign key referencing transaction date in dim_date."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: product_key
+        description: "Foreign key referencing dim_product."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: product_key
+
+  - name: fact_marketing_daily
+    description: "Fact table for daily marketing performance metrics."
+    columns:
+      - name: marketing_key
+        description: "Surrogate key for the marketing record."
+        tests:
+          - unique
+          - not_null
+      - name: campaign_key
+        description: "Foreign key referencing dim_campaign."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_campaign')
+                field: campaign_key
+      - name: hotel_key
+        description: "Foreign key referencing dim_hotel."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_hotel')
+                field: hotel_key
+      - name: date_key
+        description: "Foreign key referencing campaign date in dim_date."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
